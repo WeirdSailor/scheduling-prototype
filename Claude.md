@@ -19,33 +19,52 @@ src/
 ├── App.tsx                           # Root component, renders Dashboard
 ├── App.css                           # Root layout styles
 ├── index.css                         # Global styles, CSS variables, AG Grid customizations
+├── types/
+│   └── index.ts                      # TypeScript interfaces (UnitData, StylingConfig, etc.)
+├── config/
+│   └── themes.ts                     # Font, background, text theme configurations
+├── data/
+│   └── sampleData.ts                 # Sample data generation (celestial unit names)
 └── components/
     ├── Dashboard.tsx                 # Main grid + state management + styling effects
     ├── ColumnVisibilityPanel.tsx     # Side panel with all styling controls
+    ├── ColumnVisibilityPanel.module.css  # CSS module for panel styles
     └── FuelTypeCellRenderer.tsx      # Custom cell renderer for fuel type icons
 ```
 
 ## Key Files
 
+### `src/types/index.ts`
+TypeScript interfaces for:
+- `UnitData` - Row data structure
+- `FuelType` - Union type for fuel types
+- `StylingConfig` - All styling options grouped
+- `StylingActions` - Setter functions for styling
+
+### `src/config/themes.ts`
+Configuration constants:
+- `FONTS` - Font family, letter-spacing, category for each font option
+- `BACKGROUNDS` - Body and header colors for each background theme
+- `TEXT_THEMES` - Hex color, foreground color, optional CSS class
+- `ROW_HEIGHTS` - Pixel heights for vertical spacing options
+- `COLUMN_WIDTH_BUFFERS` - Padding values for column width options
+- `FONT_SIZES`, `ZOOM_LEVELS` - Available options
+
 ### `src/components/Dashboard.tsx`
 Main component containing:
 - AG Grid configuration with 9 columns and 100 sample rows
-- All styling state (font, size, weight, spacing, colors, zoom, grid lines)
-- `useEffect` hooks that apply styling changes via CSS custom properties
-- System summary header with KPI values
+- Styling state and grouped `StylingConfig`/`StylingActions` for panel
+- `useEffect` hooks that apply styling changes via CSS custom properties and refs
+- Uses `transform: scale()` for cross-browser zoom support
 
 ### `src/components/ColumnVisibilityPanel.tsx`
-Control panel with:
+Control panel receiving `styling` and `actions` props:
 - Column visibility toggles
-- Font selection (7 options)
-- Font size (8px-22px)
-- Vertical spacing (Small/Medium/Large)
-- Font weight (Normal/Bold)
-- Zoom level (70%-160%)
-- Grid lines toggle
-- Column width (Narrow/Medium/Wide)
-- Text theme colors (4 options)
-- Background colors (3 options)
+- Font selection, size, weight
+- Vertical spacing, zoom level
+- Grid lines toggle, column width
+- Text theme and background colors
+- Current settings summary
 
 ### `src/index.css`
 Global styles including:
@@ -54,13 +73,6 @@ Global styles including:
 - AG Grid theme overrides
 - Text theme classes (`.text-theme-amber`, `.text-theme-green`)
 - Grid line hiding styles
-
-## How Styling Is Applied
-
-1. **CSS Custom Properties** - Font, colors, and sizes set via `document.documentElement.style.setProperty()`
-2. **AG Grid API** - Column visibility, width adjustments via `gridApi`
-3. **CSS Classes** - Theme variations toggled on grid container
-4. **Direct Styles** - Background color, zoom applied to body/container
 
 ## Running the Project
 
@@ -73,14 +85,21 @@ npm run dev
 
 ### Adding a new font option
 1. Import font in `index.css` via Google Fonts
-2. Add option to `fonts` array in `ColumnVisibilityPanel.tsx`
-3. Update letter-spacing logic in `Dashboard.tsx` useEffect if needed
+2. Add entry to `FONTS` object in `src/config/themes.ts`
+3. Add to `FontOption` type in `src/types/index.ts`
 
 ### Adding a new color theme
-1. Add option to `textThemes` array in `ColumnVisibilityPanel.tsx`
-2. Add corresponding CSS class in `index.css` if needed
-3. Update the text theme useEffect in `Dashboard.tsx`
+1. Add entry to `TEXT_THEMES` or `BACKGROUNDS` in `src/config/themes.ts`
+2. Add to corresponding type in `src/types/index.ts`
+3. Add CSS class in `index.css` if theme needs special styling
 
 ### Modifying grid columns
-- Column definitions are in `Dashboard.tsx` in the `columnDefs` state
-- Custom renderers go in `src/components/` and register via `frameworkComponents`
+- Column definitions are in `Dashboard.tsx` in the `colDefs` useMemo
+- Custom renderers go in `src/components/` and are passed directly to `cellRenderer`
+
+### Adding new styling options
+1. Add type to `src/types/index.ts`
+2. Add config to `src/config/themes.ts`
+3. Add state and setter in `Dashboard.tsx`
+4. Add to `StylingConfig` and `StylingActions` objects
+5. Add UI control in `ColumnVisibilityPanel.tsx`

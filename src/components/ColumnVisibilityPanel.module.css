@@ -1,0 +1,125 @@
+.panel {
+  padding: 10px;
+  border: 1px solid #555;
+  background-color: #333;
+  color: #eee;
+  min-width: 200px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+}
+
+.panelLoading {
+  padding: 10px;
+  border: 1px solid #555;
+  background-color: #333;
+  color: white;
+  min-width: 200px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+}
+
+.sectionTitle {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 1em;
+  font-weight: bold;
+}
+
+.sectionTitle:first-child {
+  margin-top: 0;
+}
+
+.checkboxItem {
+  margin-bottom: 5px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox {
+  margin-right: 8px;
+}
+
+.select {
+  width: 100%;
+  padding: 5px;
+  background-color: #555;
+  color: white;
+  border: 1px solid #777;
+  border-radius: 4px;
+}
+
+.selectWithPreview {
+  width: calc(100% - 30px);
+  padding: 5px;
+  background-color: #555;
+  color: white;
+  border: 1px solid #777;
+  border-radius: 4px;
+}
+
+.selectRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.fontSelectRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.fontSelectRow .select {
+  width: calc(100% - 100px);
+}
+
+.fontLabel {
+  font-size: 0.8em;
+  margin-left: 10px;
+}
+
+.colorSwatch {
+  width: 20px;
+  height: 20px;
+  border: 1px solid white;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.radioGroup {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.radioLabel {
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+  cursor: pointer;
+}
+
+.radioInput {
+  margin-right: 5px;
+}
+
+.settingsBox {
+  background-color: #444;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.settingLine {
+  margin: 0 0 5px 0;
+}
+
+.settingLine:last-child {
+  margin-bottom: 0;
+}
