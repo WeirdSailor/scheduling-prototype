@@ -7,7 +7,9 @@ import {
   TEXT_THEMES,
   ROW_HEIGHTS,
   FONT_SIZES,
+  FONT_WEIGHTS,
   ZOOM_LEVELS,
+  COLUMN_WIDTH_BUFFERS,
 } from '../config/themes';
 import styles from './ColumnVisibilityPanel.module.css';
 
@@ -23,12 +25,32 @@ interface ColumnState {
   visible: boolean;
 }
 
+type DropdownKey =
+  | 'columns'
+  | 'font'
+  | 'fontSize'
+  | 'verticalSpacing'
+  | 'fontWeight'
+  | 'zoomLevel'
+  | 'columnWidth'
+  | 'textTheme'
+  | 'background';
+
 const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
   gridApi,
   styling,
   actions,
 }) => {
   const [columns, setColumns] = useState<ColumnState[]>([]);
+  const [openDropdown, setOpenDropdown] = useState<DropdownKey | null>(null);
+
+  const toggleDropdown = (key: DropdownKey) => {
+    setOpenDropdown(openDropdown === key ? null : key);
+  };
+
+  const closeDropdown = () => {
+    setOpenDropdown(null);
+  };
 
   useEffect(() => {
     if (!gridApi) return;
@@ -37,11 +59,18 @@ const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
       const allGridColumns = gridApi.getAllGridColumns();
       if (!allGridColumns) return;
 
-      const columnStates = allGridColumns.map((column) => ({
-        id: column.getColId(),
-        headerName: gridApi.getDisplayNameForColumn(column, null) || column.getColId(),
-        visible: column.isVisible(),
-      }));
+      const columnStates = allGridColumns.map((column) => {
+        const colId = column.getColId();
+        let headerName = gridApi.getDisplayNameForColumn(column, null) || colId;
+        if (colId === '0' || headerName === '') {
+          headerName = 'Tick box';
+        }
+        return {
+          id: colId,
+          headerName,
+          visible: column.isVisible(),
+        };
+      });
       setColumns(columnStates);
     };
 
@@ -62,10 +91,6 @@ const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
     };
   }, [gridApi]);
 
-  const onCheckboxChange = (columnId: string, checked: boolean) => {
-    gridApi.setColumnsVisible([columnId], checked);
-  };
-
   if (!gridApi) {
     return (
       <div className={styles.panelLoading}>
@@ -78,112 +103,191 @@ const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
   const fontOptions = Object.keys(FONTS) as (keyof typeof FONTS)[];
   const backgroundOptions = Object.keys(BACKGROUNDS) as (keyof typeof BACKGROUNDS)[];
   const textThemeOptions = Object.keys(TEXT_THEMES) as (keyof typeof TEXT_THEMES)[];
+  const verticalSpacingOptions: ('Small' | 'Medium' | 'Large')[] = ['Small', 'Medium', 'Large'];
+  const columnWidthOptions: ('Narrow' | 'Medium' | 'Wide')[] = ['Narrow', 'Medium', 'Wide'];
+
+  const visibleCount = columns.filter((col) => col.visible).length;
+
+  const onColumnToggle = (columnId: string, checked: boolean) => {
+    gridApi.setColumnsVisible([columnId], checked);
+  };
 
   return (
     <div className={styles.panel}>
-      <h3 className={styles.sectionTitle}>Column Visibility</h3>
-      {columns.map((column) => (
-        <div key={column.id} className={styles.checkboxItem}>
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={column.visible}
-              onChange={(e) => onCheckboxChange(column.id, e.target.checked)}
-              className={styles.checkbox}
-            />
-            {column.headerName}
-          </label>
-        </div>
-      ))}
+      {/* Column Selection - Multi Select */}
+      <h3 className={styles.sectionTitle}>Column Selection</h3>
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('columns')}
+        >
+          <span>{visibleCount} of {columns.length} columns</span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'columns' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'columns' && (
+          <div className={styles.dropdownMenu}>
+            {columns.map((column) => (
+              <label key={column.id} className={styles.dropdownItem}>
+                <input
+                  type="checkbox"
+                  checked={column.visible}
+                  onChange={(e) => onColumnToggle(column.id, e.target.checked)}
+                  className={styles.checkbox}
+                />
+                {column.headerName}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
 
+      {/* Font Selection - Single Select */}
       <h3 className={styles.sectionTitle}>Font Selection</h3>
-      <div className={styles.fontSelectRow}>
-        <select
-          value={styling.activeFont}
-          onChange={(e) => actions.setActiveFont(e.target.value as keyof typeof FONTS)}
-          className={styles.select}
-          style={{ width: 'calc(100% - 100px)' }}
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('font')}
         >
-          {fontOptions.map((font) => (
-            <option key={font} value={font}>
-              {font} ({FONTS[font].category})
-            </option>
-          ))}
-        </select>
-        <span className={styles.fontLabel}>{styling.activeFont}</span>
+          <span>{styling.activeFont} ({FONTS[styling.activeFont].category})</span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'font' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'font' && (
+          <div className={styles.dropdownMenu}>
+            {fontOptions.map((font) => (
+              <div
+                key={font}
+                className={`${styles.dropdownItemSingle} ${styling.activeFont === font ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setActiveFont(font);
+                  closeDropdown();
+                }}
+              >
+                {font} ({FONTS[font].category})
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Font Size - Single Select */}
       <h3 className={styles.sectionTitle}>Font Size</h3>
-      <div className={styles.selectRow}>
-        <select
-          value={styling.fontSize}
-          onChange={(e) => actions.setFontSize(parseInt(e.target.value))}
-          className={styles.select}
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('fontSize')}
         >
-          {FONT_SIZES.map((size) => (
-            <option key={size} value={size}>
-              {size}px
-            </option>
-          ))}
-        </select>
+          <span>{styling.fontSize}px</span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'fontSize' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'fontSize' && (
+          <div className={styles.dropdownMenu}>
+            {FONT_SIZES.map((size) => (
+              <div
+                key={size}
+                className={`${styles.dropdownItemSingle} ${styling.fontSize === size ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setFontSize(size);
+                  closeDropdown();
+                }}
+              >
+                {size}px
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Vertical Spacing - Single Select */}
       <h3 className={styles.sectionTitle}>Vertical Spacing</h3>
-      <div className={styles.selectRow}>
-        <select
-          value={styling.verticalSpacing}
-          onChange={(e) =>
-            actions.setVerticalSpacing(e.target.value as 'Small' | 'Medium' | 'Large')
-          }
-          className={styles.select}
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('verticalSpacing')}
         >
-          <option value="Small">Small</option>
-          <option value="Medium">Medium</option>
-          <option value="Large">Large</option>
-        </select>
+          <span>{styling.verticalSpacing} ({ROW_HEIGHTS[styling.verticalSpacing]}px)</span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'verticalSpacing' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'verticalSpacing' && (
+          <div className={styles.dropdownMenu}>
+            {verticalSpacingOptions.map((option) => (
+              <div
+                key={option}
+                className={`${styles.dropdownItemSingle} ${styling.verticalSpacing === option ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setVerticalSpacing(option);
+                  closeDropdown();
+                }}
+              >
+                {option} ({ROW_HEIGHTS[option]}px)
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Font Weight - Dropdown */}
       <h3 className={styles.sectionTitle}>Font Weight</h3>
-      <div className={styles.radioGroup}>
-        <label className={styles.radioLabel}>
-          <input
-            type="radio"
-            name="font-weight"
-            value="normal"
-            checked={styling.fontWeight === 'normal'}
-            onChange={() => actions.setFontWeight('normal')}
-            className={styles.radioInput}
-          />
-          Normal
-        </label>
-        <label className={styles.radioLabel}>
-          <input
-            type="radio"
-            name="font-weight"
-            value="bold"
-            checked={styling.fontWeight === 'bold'}
-            onChange={() => actions.setFontWeight('bold')}
-            className={styles.radioInput}
-          />
-          Bold
-        </label>
-      </div>
-
-      <h3 className={styles.sectionTitle}>Zoom Level</h3>
-      <div className={styles.selectRow}>
-        <select
-          value={styling.zoomLevel}
-          onChange={(e) => actions.setZoomLevel(parseFloat(e.target.value))}
-          className={styles.select}
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('fontWeight')}
         >
-          {ZOOM_LEVELS.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+          <span>{FONT_WEIGHTS.find(w => w.value === styling.fontWeight)?.label || styling.fontWeight}</span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'fontWeight' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'fontWeight' && (
+          <div className={styles.dropdownMenu}>
+            {FONT_WEIGHTS.map(({ value, label }) => (
+              <div
+                key={value}
+                className={`${styles.dropdownItemSingle} ${styling.fontWeight === value ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setFontWeight(value);
+                  closeDropdown();
+                }}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Zoom Level - Single Select */}
+      <h3 className={styles.sectionTitle}>Zoom Level</h3>
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('zoomLevel')}
+        >
+          <span>{ZOOM_LEVELS.find(z => z.value === styling.zoomLevel)?.label || `${Math.round(styling.zoomLevel * 100)}%`}</span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'zoomLevel' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'zoomLevel' && (
+          <div className={styles.dropdownMenu}>
+            {ZOOM_LEVELS.map(({ value, label }) => (
+              <div
+                key={value}
+                className={`${styles.dropdownItemSingle} ${styling.zoomLevel === value ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setZoomLevel(value);
+                  closeDropdown();
+                }}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Grid Lines - Checkbox (keeping as is) */}
       <h3 className={styles.sectionTitle}>Grid Lines</h3>
       <div className={styles.radioGroup}>
         <label className={styles.checkboxLabel}>
@@ -197,59 +301,115 @@ const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
         </label>
       </div>
 
+      {/* Column Width - Single Select */}
       <h3 className={styles.sectionTitle}>Column Width</h3>
-      <div className={styles.selectRow}>
-        <select
-          value={styling.columnWidthOption}
-          onChange={(e) =>
-            actions.setColumnWidthOption(e.target.value as 'Narrow' | 'Medium' | 'Wide')
-          }
-          className={styles.select}
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('columnWidth')}
         >
-          <option value="Narrow">Narrow</option>
-          <option value="Medium">Medium</option>
-          <option value="Wide">Wide</option>
-        </select>
+          <span>{styling.columnWidthOption}</span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'columnWidth' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'columnWidth' && (
+          <div className={styles.dropdownMenu}>
+            {columnWidthOptions.map((option) => (
+              <div
+                key={option}
+                className={`${styles.dropdownItemSingle} ${styling.columnWidthOption === option ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setColumnWidthOption(option);
+                  closeDropdown();
+                }}
+              >
+                {option} (Auto-fit + {COLUMN_WIDTH_BUFFERS[option]}px)
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Text Theme - Single Select with color swatch */}
       <h3 className={styles.sectionTitle}>Text Theme</h3>
-      <div className={styles.selectRow}>
-        <select
-          value={styling.textTheme}
-          onChange={(e) => actions.setTextTheme(e.target.value as keyof typeof TEXT_THEMES)}
-          className={styles.selectWithPreview}
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('textTheme')}
         >
-          {textThemeOptions.map((theme) => (
-            <option key={theme} value={theme}>
-              {theme}
-            </option>
-          ))}
-        </select>
-        <div
-          className={styles.colorSwatch}
-          style={{ backgroundColor: TEXT_THEMES[styling.textTheme].hex }}
-        />
+          <span className={styles.dropdownButtonContent}>
+            <span>{styling.textTheme}</span>
+            <span
+              className={styles.colorSwatchSmall}
+              style={{ backgroundColor: TEXT_THEMES[styling.textTheme].hex }}
+            />
+          </span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'textTheme' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'textTheme' && (
+          <div className={styles.dropdownMenu}>
+            {textThemeOptions.map((theme) => (
+              <div
+                key={theme}
+                className={`${styles.dropdownItemSingle} ${styling.textTheme === theme ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setTextTheme(theme);
+                  closeDropdown();
+                }}
+              >
+                <span className={styles.dropdownItemWithSwatch}>
+                  <span>{theme}</span>
+                  <span
+                    className={styles.colorSwatchSmall}
+                    style={{ backgroundColor: TEXT_THEMES[theme].hex }}
+                  />
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Background Colour - Single Select with color swatch */}
       <h3 className={styles.sectionTitle}>Background Colour</h3>
-      <div className={styles.selectRow}>
-        <select
-          value={styling.backgroundTheme}
-          onChange={(e) =>
-            actions.setBackgroundTheme(e.target.value as keyof typeof BACKGROUNDS)
-          }
-          className={styles.selectWithPreview}
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={styles.dropdownButton}
+          onClick={() => toggleDropdown('background')}
         >
-          {backgroundOptions.map((theme) => (
-            <option key={theme} value={theme}>
-              {theme}
-            </option>
-          ))}
-        </select>
-        <div
-          className={styles.colorSwatch}
-          style={{ backgroundColor: BACKGROUNDS[styling.backgroundTheme].body }}
-        />
+          <span className={styles.dropdownButtonContent}>
+            <span>{styling.backgroundTheme}</span>
+            <span
+              className={styles.colorSwatchSmall}
+              style={{ backgroundColor: BACKGROUNDS[styling.backgroundTheme].body }}
+            />
+          </span>
+          <span className={styles.dropdownArrow}>{openDropdown === 'background' ? '▲' : '▼'}</span>
+        </button>
+        {openDropdown === 'background' && (
+          <div className={styles.dropdownMenu}>
+            {backgroundOptions.map((theme) => (
+              <div
+                key={theme}
+                className={`${styles.dropdownItemSingle} ${styling.backgroundTheme === theme ? styles.dropdownItemSelected : ''}`}
+                onClick={() => {
+                  actions.setBackgroundTheme(theme);
+                  closeDropdown();
+                }}
+              >
+                <span className={styles.dropdownItemWithSwatch}>
+                  <span>{theme}</span>
+                  <span
+                    className={styles.colorSwatchSmall}
+                    style={{ backgroundColor: BACKGROUNDS[theme].body }}
+                  />
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <h3 className={styles.sectionTitle}>Current Settings</h3>
@@ -265,8 +425,7 @@ const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
           {ROW_HEIGHTS[styling.verticalSpacing]}px)
         </p>
         <p className={styles.settingLine}>
-          <strong>Font Weight:</strong> {styling.fontWeight} (
-          {styling.fontWeight === 'normal' ? 400 : 700})
+          <strong>Font Weight:</strong> {styling.fontWeight}
         </p>
         <p className={styles.settingLine}>
           <strong>Zoom Level:</strong> {Math.round(styling.zoomLevel * 100)}%
@@ -275,7 +434,7 @@ const ColumnVisibilityPanel: React.FC<ColumnVisibilityPanelProps> = ({
           <strong>Grid Lines:</strong> {styling.showGridLines ? 'Visible' : 'Hidden'}
         </p>
         <p className={styles.settingLine}>
-          <strong>Column Width:</strong> {styling.columnWidthOption}
+          <strong>Column Width:</strong> {styling.columnWidthOption} (Auto-fit + {COLUMN_WIDTH_BUFFERS[styling.columnWidthOption]}px)
         </p>
         <p className={styles.settingLine}>
           <strong>Background:</strong> {styling.backgroundTheme} (

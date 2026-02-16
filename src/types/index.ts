@@ -1,15 +1,21 @@
 // Unit data types
 export type FuelType = 'Gas' | 'Coal' | 'Wind' | 'Solar' | 'Nuclear' | 'Hydro';
+export type Zone = 'NORT' | 'NORTH WIND' | 'SOUTH' | 'SOUTH WIND' | 'SMALL BMU' | 'BATTERY';
+
+export type PriceDirection = 'up' | 'down' | null;
 
 export interface UnitData {
   UnitName: string;
-  FuelType: FuelType;
   FPN: number;
   MEL: number;
   SEL: number;
   NDZ: number;
   MNZT: number;
   MZT: number;
+  Price: number;
+  PriceDirection: PriceDirection;
+  Zone: Zone;
+  FuelType: FuelType;
 }
 
 // Styling configuration types
@@ -23,10 +29,10 @@ export type FontOption =
   | 'JetBrains Mono';
 
 export type VerticalSpacing = 'Small' | 'Medium' | 'Large';
-export type FontWeight = 'normal' | 'bold';
+export type FontWeight = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
 export type ColumnWidth = 'Narrow' | 'Medium' | 'Wide';
 export type BackgroundTheme = 'Midnight Slate' | 'Tactical Black' | 'Deep Blue';
-export type TextTheme = 'Pure White' | 'Modern White' | 'Dual-Tone Amber' | 'Digital Green';
+export type TextTheme = 'Pure White' | 'Modern White' | 'Yellow' | 'Dual-Tone Amber' | 'Light Green';
 
 export interface StylingConfig {
   activeFont: FontOption;

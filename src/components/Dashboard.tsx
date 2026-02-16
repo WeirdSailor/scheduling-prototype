@@ -5,8 +5,9 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 import FuelTypeCellRenderer from './FuelTypeCellRenderer';
+import PriceCellRenderer from './PriceCellRenderer';
 import ColumnVisibilityPanel from './ColumnVisibilityPanel';
-import { generateSampleData, DEMAND_FORECAST } from '../data/sampleData';
+import { generateSampleData } from '../data/sampleData';
 import type {
   StylingConfig,
   StylingActions,
@@ -27,11 +28,19 @@ import {
 
 function Dashboard() {
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
+  const [isGridDataRendered, setIsGridDataRendered] = useState(false);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const appContainerRef = useRef<HTMLDivElement>(null);
 
   const onGridReady = useCallback((params: GridReadyEvent) => {
     setGridApi(params.api);
+  }, []);
+
+  const onFirstDataRendered = useCallback(() => {
+    // Small delay to ensure grid is fully rendered before sizing columns
+    setTimeout(() => {
+      setIsGridDataRendered(true);
+    }, 50);
   }, []);
 
   const [rowData] = useState(() => generateSampleData(100));
@@ -41,28 +50,22 @@ function Dashboard() {
       { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 50 },
       { field: 'UnitName', sortable: true, filter: true, cellClass: 'unit-name-cell' },
       {
-        field: 'FuelType',
-        sortable: true,
-        filter: true,
-        cellRenderer: FuelTypeCellRenderer,
-      },
-      {
         field: 'FPN',
-        headerName: 'PN (MW)',
+        headerName: 'PN',
         sortable: true,
         filter: true,
         cellClass: 'ag-right-aligned-cell',
       },
       {
         field: 'MEL',
-        headerName: 'MEL (MW)',
+        headerName: 'MEL',
         sortable: true,
         filter: true,
         cellClass: 'ag-right-aligned-cell',
       },
       {
         field: 'SEL',
-        headerName: 'SEL (MW)',
+        headerName: 'SEL',
         sortable: true,
         filter: true,
         cellClass: 'ag-right-aligned-cell',
@@ -88,15 +91,28 @@ function Dashboard() {
         filter: true,
         cellClass: 'ag-right-aligned-cell',
       },
+      {
+        field: 'Price',
+        headerName: 'Price',
+        sortable: true,
+        filter: true,
+        cellRenderer: PriceCellRenderer,
+      },
+      {
+        field: 'Zone',
+        headerName: 'Zone',
+        sortable: true,
+        filter: true,
+      },
+      {
+        field: 'FuelType',
+        sortable: true,
+        filter: true,
+        cellRenderer: FuelTypeCellRenderer,
+      },
     ],
     []
   );
-
-  const totalScheduled = useMemo(
-    () => rowData.reduce((sum, unit) => sum + unit.FPN, 0),
-    [rowData]
-  );
-  const margin = totalScheduled - DEMAND_FORECAST;
 
   // Panel state
   const [isPanelOpen, setIsPanelOpen] = useState(true);
@@ -104,11 +120,11 @@ function Dashboard() {
   // Styling state
   const [activeFont, setActiveFont] = useState<FontOption>('Inter');
   const [fontSize, setFontSize] = useState(12);
-  const [fontWeight, setFontWeight] = useState<FontWeight>('normal');
+  const [fontWeight, setFontWeight] = useState<FontWeight>(400);
   const [verticalSpacing, setVerticalSpacing] = useState<VerticalSpacing>('Medium');
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [showGridLines, setShowGridLines] = useState(true);
-  const [columnWidthOption, setColumnWidthOption] = useState<ColumnWidth>('Wide');
+  const [columnWidthOption, setColumnWidthOption] = useState<ColumnWidth>('Narrow');
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>('Midnight Slate');
   const [textTheme, setTextTheme] = useState<TextTheme>('Pure White');
 
@@ -137,16 +153,18 @@ function Dashboard() {
     setTextTheme,
   };
 
-  // Font size effect
+  // Font size effect - apply to grid container
   useEffect(() => {
-    document.documentElement.style.setProperty('--ag-font-size', `${fontSize}px`);
+    const gridDiv = gridContainerRef.current;
+    if (!gridDiv) return;
+    gridDiv.style.setProperty('--ag-font-size', `${fontSize}px`);
   }, [fontSize]);
 
   // Font family and weight effect
   useEffect(() => {
     const fontConfig = FONTS[activeFont];
     document.documentElement.style.setProperty('--operator-font', fontConfig.family);
-    document.documentElement.style.setProperty('--ag-font-weight', fontWeight);
+    document.documentElement.style.setProperty('--ag-font-weight', String(fontWeight));
     document.body.style.letterSpacing = fontConfig.letterSpacing;
   }, [activeFont, fontWeight]);
 
@@ -167,7 +185,7 @@ function Dashboard() {
     if (!gridDiv) return;
 
     // Remove existing theme classes
-    gridDiv.classList.remove('text-theme-amber', 'text-theme-green');
+    gridDiv.classList.remove('text-theme-amber', 'text-theme-green', 'text-theme-yellow');
 
     const themeConfig = TEXT_THEMES[textTheme];
     gridDiv.style.setProperty('--ag-foreground-color', themeConfig.foregroundColor);
@@ -214,64 +232,58 @@ function Dashboard() {
     }
   }, [showGridLines]);
 
-  // Column width effect (simplified)
+  // Column width effect (simplified) - skip first column (checkbox)
+  // Wait for first data render before applying column widths
   useEffect(() => {
-    if (!gridApi) return;
+    if (!gridApi || !isGridDataRendered) return;
 
-    const allColumnIds = gridApi.getAllGridColumns()?.map((col) => col.getColId()) ?? [];
-    if (allColumnIds.length === 0) return;
+    const allColumns = gridApi.getAllGridColumns() ?? [];
+    if (allColumns.length === 0) return;
+
+    // Skip the first column (checkbox column)
+    const dataColumns = allColumns.slice(1);
+    const dataColumnIds = dataColumns.map((col) => col.getColId());
 
     const buffer = COLUMN_WIDTH_BUFFERS[columnWidthOption];
 
-    gridApi.autoSizeColumns(allColumnIds, true);
+    gridApi.autoSizeColumns(dataColumnIds, true);
 
-    gridApi.getAllGridColumns()?.forEach((col) => {
+    dataColumns.forEach((col) => {
       const currentWidth = col.getActualWidth();
       gridApi.setColumnWidths([{ key: col.getColId(), newWidth: currentWidth + buffer }]);
     });
 
     gridApi.refreshHeader();
-  }, [columnWidthOption, gridApi]);
+  }, [columnWidthOption, gridApi, isGridDataRendered]);
 
   const rowHeight = ROW_HEIGHTS[verticalSpacing];
 
   return (
     <div
       ref={appContainerRef}
-      style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}
+      className="dashboard-container"
     >
-      <div className="system-summary">
-        <h2>ESO Generation Dispatch Dashboard</h2>
+      <div className="toolbar">
         <button
           onClick={() => setIsPanelOpen(!isPanelOpen)}
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
-            zIndex: 100,
-            padding: '5px 10px',
-            backgroundColor: '#555',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-          }}
+          className="toolbar-button"
+          title={isPanelOpen ? 'Hide Panel' : 'Show Panel'}
         >
-          {isPanelOpen ? 'Close Panel' : 'Open Panel'}
+          ☰
         </button>
-        <p>Demand Forecast: {DEMAND_FORECAST} MW</p>
-        <p>Total Scheduled: {totalScheduled} MW</p>
-        <p style={{ color: margin < 0 ? 'red' : 'inherit' }}>Margin: {margin} MW</p>
       </div>
-      <div style={{ flexGrow: 1, display: 'flex' }}>
-        {gridApi && isPanelOpen && (
-          <ColumnVisibilityPanel gridApi={gridApi} styling={styling} actions={actions} />
-        )}
-        <div ref={gridContainerRef} className="ag-theme-quartz-dark" style={{ flexGrow: 1 }}>
+      <div className="main-content">
+        <div className={`panel-container ${isPanelOpen ? 'panel-open' : 'panel-closed'}`}>
+          {gridApi && (
+            <ColumnVisibilityPanel gridApi={gridApi} styling={styling} actions={actions} />
+          )}
+        </div>
+        <div ref={gridContainerRef} className="ag-theme-quartz-dark">
           <AgGridReact
             rowData={rowData}
             columnDefs={colDefs}
             onGridReady={onGridReady}
+            onFirstDataRendered={onFirstDataRendered}
             rowSelection="multiple"
             theme="legacy"
             rowHeight={rowHeight}

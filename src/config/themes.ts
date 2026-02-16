@@ -79,14 +79,19 @@ export const TEXT_THEMES: Record<TextTheme, TextThemeConfig> = {
     hex: '#E6EDF3',
     foregroundColor: '#E6EDF3',
   },
+  'Yellow': {
+    hex: '#fde047',
+    foregroundColor: '#fde047',
+    cssClass: 'text-theme-yellow',
+  },
   'Dual-Tone Amber': {
-    hex: '#FFB000',
+    hex: '#fdba74',
     foregroundColor: '#E6EDF3',
     cssClass: 'text-theme-amber',
   },
-  'Digital Green': {
-    hex: '#4AF626',
-    foregroundColor: '#4AF626',
+  'Light Green': {
+    hex: '#86efac',
+    foregroundColor: '#86efac',
     cssClass: 'text-theme-green',
   },
 };
@@ -98,12 +103,24 @@ export const ROW_HEIGHTS: Record<VerticalSpacing, number> = {
 };
 
 export const COLUMN_WIDTH_BUFFERS: Record<ColumnWidth, number> = {
-  'Narrow': 40,  // 5 * 8px average char width
-  'Medium': 64,  // 8 * 8px
-  'Wide': 80,    // 10 * 8px
+  'Narrow': 20,
+  'Medium': 60,
+  'Wide': 90,
 };
 
 export const FONT_SIZES = [8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22] as const;
+
+export const FONT_WEIGHTS = [
+  { value: 100, label: '100 - Thin' },
+  { value: 200, label: '200 - Extra Light' },
+  { value: 300, label: '300 - Light' },
+  { value: 400, label: '400 - Normal' },
+  { value: 500, label: '500 - Medium' },
+  { value: 600, label: '600 - Semi Bold' },
+  { value: 700, label: '700 - Bold' },
+  { value: 800, label: '800 - Extra Bold' },
+  { value: 900, label: '900 - Black' },
+] as const;
 
 export const ZOOM_LEVELS = [
   { value: 0.70, label: 'Zoom Out (70%)' },
