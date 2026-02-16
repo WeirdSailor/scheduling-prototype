@@ -37,10 +37,10 @@ function Dashboard() {
   }, []);
 
   const onFirstDataRendered = useCallback(() => {
-    // Small delay to ensure grid is fully rendered before sizing columns
+    // Longer delay to ensure grid is fully rendered before sizing columns
     setTimeout(() => {
       setIsGridDataRendered(true);
-    }, 50);
+    }, 150);
   }, []);
 
   const [rowData] = useState(() => generateSampleData(100));
@@ -237,21 +237,27 @@ function Dashboard() {
   useEffect(() => {
     if (!gridApi || !isGridDataRendered) return;
 
-    const allColumns = gridApi.getAllGridColumns() ?? [];
-    if (allColumns.length === 0) return;
+    const applyColumnWidths = () => {
+      const allColumns = gridApi.getAllGridColumns() ?? [];
+      if (allColumns.length === 0) return;
 
-    // Skip the first column (checkbox column)
-    const dataColumns = allColumns.slice(1);
-    const dataColumnIds = dataColumns.map((col) => col.getColId());
+      // Skip the first column (checkbox column)
+      const dataColumns = allColumns.slice(1);
+      const dataColumnIds = dataColumns.map((col) => col.getColId());
 
-    const buffer = COLUMN_WIDTH_BUFFERS[columnWidthOption];
+      const buffer = COLUMN_WIDTH_BUFFERS[columnWidthOption];
 
-    gridApi.autoSizeColumns(dataColumnIds, true);
+      gridApi.autoSizeColumns(dataColumnIds, true);
 
-    dataColumns.forEach((col) => {
-      const currentWidth = col.getActualWidth();
-      gridApi.setColumnWidths([{ key: col.getColId(), newWidth: currentWidth + buffer }]);
-    });
+      dataColumns.forEach((col) => {
+        const currentWidth = col.getActualWidth();
+        gridApi.setColumnWidths([{ key: col.getColId(), newWidth: currentWidth + buffer }]);
+      });
+    };
+
+    // Apply twice with a small delay to ensure all columns are sized correctly
+    applyColumnWidths();
+    setTimeout(applyColumnWidths, 100);
 
     gridApi.refreshHeader();
   }, [columnWidthOption, gridApi, isGridDataRendered]);
